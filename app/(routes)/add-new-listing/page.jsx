@@ -1,15 +1,42 @@
 "use client"
 import GoogleAddressSearch from '@/app/_components/GoogleAddressSearch'
 import { Button } from '@/components/ui/button'
+import { supabase } from '@/utils/supabase/client'
+import { useUser } from '@clerk/nextjs'
+import { Loader } from 'lucide-react'
 import React, { useState } from 'react'
+import { toast } from 'sonner'
 
 
 const AddNewListing = () => {
-    const [selectedAddress, setSelectedAddress] = useState();
-    const [coordinates, setCoordinates] = useState();
+    const [selectAddress, setSelectedAddress] = useState();
+    const [coordinates, setcoordinates] = useState();
+    const {user} =useUser();
+    const [loader, setLoader]= useState(false);
 
-    nextHandler=()=>{
-      console.log(sele, coordinates)
+    const nextHandler= async()=>{
+      setLoader(true);
+      const { data, error } = await supabase
+      .from('listing')
+      .insert([
+        { address: selectAddress.label,
+           coordinates: coordinates,
+           createdBy:user?.primaryEmailAddress.emailAddress
+           },
+      ])
+      .select()
+
+      if(data){
+        setLoader(false);
+        console.log('data added succesfully', data);
+        toast('New Address added for Listing')
+      }
+      if(error){
+        setLoader(false)
+        console.log('error')
+        toast('Server side error')
+      }
+              
     }
   return (
     <div className='mt-10 md:mx-56 lg:mx-80'>
@@ -22,12 +49,15 @@ const AddNewListing = () => {
             Enter Address Which You Want To List
         </h2>
         <GoogleAddressSearch
-            selectedAddress={(value) => setSelectedAddress(value)}
-            setCoordinates={(value) => setCoordinates(value)}
+            selectAddress={(value) => setSelectedAddress(value)}
+            setcoordinates={(value) => setcoordinates(value)}
          />
         <Button
+            disabled={!selectAddress || !coordinates || loader}
             onClick={nextHandler}
-        >Next</Button>
+        >
+          {loader?<Loader className='animate-spin'/>:'Next'}
+          Next</Button>
       </div>
     </div>
     </div>
