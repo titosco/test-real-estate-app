@@ -13,16 +13,50 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Formik } from 'formik';
 import { Button } from '@/components/ui/button';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { supabase } from '@/utils/supabase/client';
+import { toast } from 'sonner';
+import { useUser } from '@clerk/nextjs';
 // import FileUpload from "../_components/FileUpload";
 
-const EditListing = () => {
+const EditListing = ({params}) => {
 
-    const params = usePathname();
+    
+    const {user} = useUser();
+    const router= useRouter()
 
     useEffect(()=>{
-        console.log(params.split('/')(2))
-    }, [])
+        // console.log(params.split('/')[2]);
+        user&&verifyUserRecord();
+    }, [user]);
+
+    const verifyUserRecord =async()=>{
+      const {data,error} = await supabase
+      .from('listing')
+      .select('*')
+      .eq('createdBy',user?.primaryEmailAddress.emailAddress )
+      .eq('id', params.id);
+
+      if(data?.length<=0)
+        {
+            router.replace('/');
+        }
+    }
+
+    const onSubmitHandler=async(formValue)=>{
+        
+      const { data, error } = await supabase
+      .from('listing')
+      .update(formValue)
+      .eq('id', params.id)
+      .select();
+
+      if(data){
+        console.log(data)
+        toast('Listing updated and Published')
+      }
+        
+    }
 
   return (
     // form for listing a new apartment
@@ -33,10 +67,11 @@ const EditListing = () => {
       <Formik
         initialValues={{
           type: '',
-          propertyType: '',
+          propertyType: ''
         }}
         onSubmit={(values) => {
           console.log(values);
+          onSubmitHandler(values);
         }}
       >
         {({ values, handleChange, handleSubmit }) => (
@@ -65,7 +100,7 @@ const EditListing = () => {
                   <h2 className="text-lg text-slate-500">Property Type</h2>
                   <Select
                     onValueChange={(e) => (values.propertyType = e)}
-                    name="propertyType"
+                    name="propertyType" 
                   >
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Select Property Type" />
@@ -125,7 +160,7 @@ const EditListing = () => {
                   <Input
                     type="number"
                     placeholder=""
-                    name="lotsize"
+                    name="lotSize"
                     onChange={handleChange}
                   />
                 </div>
@@ -145,7 +180,7 @@ const EditListing = () => {
                   <Input
                     type="number"
                     placeholder="400000"
-                    name="sellingprice"
+                    name="price"
                     onChange={handleChange}
                   />
                 </div>
